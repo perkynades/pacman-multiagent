@@ -116,73 +116,178 @@ class MultiAgentSearchAgent(Agent):
 
 class MinimaxAgent(MultiAgentSearchAgent):
     """
-    Your minimax agent (question 2)
+      Your minimax agent (question 2)
     """
 
-    def determineAction(self, gameState, depth, agentIndex=0):
-
-        # returns score based on if we win or lose
-        if gameState.isWin():
-            return (self.evaluationFunction(gameState), )
-        else:
-            pass
-
-        if gameState.isLose():
-            return (self.evaluationFunction(gameState), )
-        else:
-            pass
-
-        if depth == 0:
-            return (self.evaluationFunction(gameState), )
-        else:
-            pass
-
-        numberOfGhosts = gameState.getNumAgents()
-
-        # if the current agent is the last agent, we decrease the depth
-        if agentIndex == numberOfGhosts - 1:
-            currentDepth = depth - 1
-        # if it is not the current agent, we dont change the depth
-        else:
-            currentDepth = depth
-        calcOfIndex = (agentIndex + 1) % numberOfGhosts
-        myIndex = calcOfIndex
-
-        # creates a list of all the posibble actions the current agent can do
-        possibleActions = [
-            (
-                self.determineAction(
-                    gameState.generateSuccessor(
-                        agentIndex, i
-                    ), currentDepth, myIndex)[0], i)
-            for i in gameState.getLegalActions(agentIndex)]
-
-        # if the current agents index is not zero, it is a minimum node
-        if(agentIndex != 0):
-            minOfList = min(possibleActions)
-            return minOfList
-        # if the current agents index is zero, it is a maximum node
-        else:
-            maxOfList = max(possibleActions)
-            return maxOfList
-
     def getAction(self, gameState):
-        resultMinMax = self.determineAction(gameState, self.depth)[1]
-        # returns the result of our minimax function
-        return resultMinMax
+        # return self.minimax(gameState=gameState)
+        best_action = self.max_value(
+            gameState=gameState, depth=0, agent_idx=0)[1]
+        return best_action
+        # util.raiseNotDefined()
+
+    def is_terminal_state(self, gameState, depth, agent_idx):
+        """
+        Helper function to determine if we reached a leaf node in the state search tree
+        """
+
+        if gameState.isWin():
+            return gameState.isWin()
+        elif gameState.isLose():
+            return gameState.isLose()
+        elif gameState.getLegalActions(agent_idx) is 0:
+            return gameState.getLegalActions(agent_idx)
+        elif depth >= self.depth * gameState.getNumAgents():
+            return self.depth
+
+    def max_value(self, gameState, depth, agent_idx):
+        """
+        Helper function to go through the whole game-state tree, all the way to the leaves, to determine the maximizing
+        backed up value of a state. 
+
+        In order to get the value and the corresponding action we need to create an iterable object such as a list
+        and specify the key with which we make the comparison for the maximum value which is the float value in the first
+        position of the tuple hence the idx[0].
+        """
+
+        value = (float('-Inf'), None)
+        legal_actions = gameState.getLegalActions(agent_idx)
+        for action in legal_actions:
+            successor_state = gameState.generateSuccessor(agent_idx, action)
+            number_of_agents = gameState.getNumAgents()
+            expand = depth + 1
+            current_player = (depth + 1) % number_of_agents
+            value = max([value, (self.value(gameState=successor_state, depth=expand,
+                        agent_idx=current_player), action)], key=lambda idx: idx[0])
+        return value
+
+    def min_value(self, gameState, depth, agent_idx):
+        """
+        Helper function to go through the whole game-state tree, all the way to the leaves, to determine the minimizing
+        backed up value of a state.  
+
+        In order to get the value and the corresponding action we need to create an iterable object such as a list
+        and specify the key with which we make the comparison for the minimum value which is the float value in the first
+        position of the tuple hence the idx[0].
+        """
+
+        value = (float('+Inf'), None)
+        legal_actions = gameState.getLegalActions(agent_idx)
+        for action in legal_actions:
+            successor_state = gameState.generateSuccessor(agent_idx, action)
+            number_of_agents = gameState.getNumAgents()
+            expand = depth + 1
+            current_player = (depth + 1) % number_of_agents
+            value = min([value, (self.value(gameState=successor_state, depth=expand,
+                        agent_idx=current_player), action)], key=lambda idx: idx[0])
+        return value
+
+    def value(self, gameState, depth, agent_idx):
+        """
+        Helper function that acts as a dispatcher to the above functions. It determines which agents's turn it is (MAX agent: Pacman, MIN agents: ghosts)
+        and traverses the tree to the leaves and backs up the state's utility value.
+        """
+
+        if self.is_terminal_state(gameState=gameState, depth=depth, agent_idx=agent_idx):
+            return self.evaluationFunction(gameState)
+        elif agent_idx is 0:
+            return self.max_value(gameState=gameState, depth=depth, agent_idx=agent_idx)[0]
+        else:
+            return self.min_value(gameState=gameState, depth=depth, agent_idx=agent_idx)[0]
 
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
-    Your minimax agent with alpha-beta pruning (question 3)
+      Your minimax agent with alpha-beta pruning (question 3)
     """
 
     def getAction(self, gameState):
         """
-        Returns the minimax action using self.depth and self.evaluationFunction
+          Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        alpha = float('-Inf')
+        beta = float('+Inf')
+        depth = 0
+        best_action = self.max_value(
+            gameState=gameState, depth=depth, agent_idx=0, alpha=alpha, beta=beta)
+        return best_action[1]
+        # util.raiseNotDefined()
+
+    def is_terminal_state(self, gameState, depth, agent_idx):
+        """
+        Helper function to determine if we reached a leaf node in the state search tree
+        """
+
+        if gameState.isWin():
+            return gameState.isWin()
+        elif gameState.isLose():
+            return gameState.isLose()
+        elif gameState.getLegalActions(agent_idx) is 0:
+            return gameState.getLegalActions(agent_idx)
+        elif depth >= self.depth * gameState.getNumAgents():
+            return self.depth
+
+    def max_value(self, gameState, depth, agent_idx, alpha, beta):
+        """
+        Helper function to go through the whole game-state tree, all the way to the leaves, to determine the maximizing
+        backed up value of a state.  
+
+        In order to get the value and the corresponding action we need to create an iterable object such as a list
+        and specify the key with which we make the comparison for the maximum value which is the float value in the first
+        position of the tuple hence the idx[0]. Additionally by using the alpha factor we can prune whole game-state subtrees.
+        """
+
+        value = (float('-Inf'), None)
+        legal_actions = gameState.getLegalActions(agent_idx)
+        for action in legal_actions:
+            successor_state = gameState.generateSuccessor(agent_idx, action)
+            number_of_agents = gameState.getNumAgents()
+            expand = depth + 1
+            current_player = expand % number_of_agents
+            value = max([value, (self.value(gameState=successor_state, depth=expand,
+                        agent_idx=current_player, alpha=alpha, beta=beta), action)], key=lambda idx: idx[0])
+            if value[0] > beta:
+                return value
+            alpha = max(alpha, value[0])
+        return value
+
+    def min_value(self, gameState, depth, agent_idx, alpha, beta):
+        """
+        Helper function to go through the whole game-state tree, all the way to the leaves, to determine the minimizing
+        backed up value of a state. 
+
+        In order to get the value and the corresponding action we need to create an iterable object such as a list
+        and specify the key with which we make the comparison for the minimum value which is the float value in the first
+        position of the tuple hence the idx[0]. Additionally by using the beta factor we can prune whole game-state subtrees.
+
+        """
+
+        value = (float('+Inf'), None)
+        legal_actions = gameState.getLegalActions(agent_idx)
+        for action in legal_actions:
+            successor_state = gameState.generateSuccessor(agent_idx, action)
+            number_of_agents = gameState.getNumAgents()
+            expand = depth + 1
+            current_player = expand % number_of_agents
+            value = min([value, (self.value(gameState=successor_state, depth=expand,
+                        agent_idx=current_player, alpha=alpha, beta=beta), action)], key=lambda idx: idx[0])
+            if value[0] < alpha:
+                return value
+            beta = min(beta, value[0])
+        return value
+
+    def value(self, gameState, depth, agent_idx, alpha, beta):
+        """
+        Helper function that acts as a dispatcher to the above functions. It determines which agents's turn it is (MAX agent: Pacman, MIN agents: ghosts)
+        and traverses the tree to the leaves and backs up the state's utility value.
+        """
+
+        if self.is_terminal_state(gameState=gameState, depth=depth, agent_idx=agent_idx):
+            return self.evaluationFunction(gameState)
+        elif agent_idx is 0:
+            return self.max_value(gameState=gameState, depth=depth, agent_idx=agent_idx, alpha=alpha, beta=beta)[0]
+        else:
+            return self.min_value(gameState=gameState, depth=depth, agent_idx=agent_idx, alpha=alpha, beta=beta)[0]
 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
